@@ -43,6 +43,7 @@ export * from './assignment/assignment.schema';
 export * from './place/place.schema';
 export * from './place/place-match';
 export * from './place/place-website';
+export * from './itinerary-import/itinerary-import.schema';
 export * from './roadtrip/roadtrip.schema';
 export * from './place/track-colors';
 export * from './collection/collection.schema';

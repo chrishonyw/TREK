@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays } from 'lucide-react'
+import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays, Sparkles } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import CustomSelect from '../shared/CustomSelect'
@@ -32,7 +32,7 @@ export function PlacesDropOverlay({ t }: SidebarState) {
 
 export function PlacesHeader(S: SidebarState) {
   const {
-    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
+    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, setItineraryImportOpen, hasMultipleListImportProviders,
     places, categories, categoryFilters, search, setSearch, plannedIds, plannedFilterIds, dayScoped, onClearSelectedDay, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
@@ -146,6 +146,20 @@ export function PlacesHeader(S: SidebarState) {
           <MapPin size={11} strokeWidth={2} /> {!compact && listImportLabel}
         </button>
       </div>
+      {/* The AI import gets a full-width row: its label is the longest of the
+          three and it is the one worth noticing. */}
+      <button type="button"
+        onClick={() => setItineraryImportOpen(true)}
+        className="border border-dashed border-edge text-content-faint"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+          width: '100%', padding: '5px 12px', borderRadius: 8, marginBottom: 10,
+          background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
+          cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap',
+        }}
+      >
+        <Sparkles size={11} strokeWidth={2} /> {t('itineraryImport.button')}
+      </button>
       <div className="bg-edge" style={{ height: 1, margin: '2px 0 10px' }} />
       </>}
 

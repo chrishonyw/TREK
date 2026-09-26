@@ -127,6 +127,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   }
 
   const [listImportOpen, setListImportOpen] = useState(false)
+  const [itineraryImportOpen, setItineraryImportOpen] = useState(false)
   const [listImportUrl, setListImportUrl] = useState('')
   const [listImportLoading, setListImportLoading] = useState(false)
   const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
@@ -347,6 +348,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
     scrollContainerRef, onScrollTopChange,
     listImportOpen, setListImportOpen, listImportUrl, setListImportUrl,
+    itineraryImportOpen, setItineraryImportOpen,
     listImportLoading, listImportProvider, setListImportProvider,
     listImportEnrich, setListImportEnrich, canEnrichImport,
     availableListImportProviders, hasMultipleListImportProviders, handleListImport,
