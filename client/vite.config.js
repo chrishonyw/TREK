@@ -324,6 +324,8 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: DEV_PORT,
+    // Local tweak: listen on all interfaces so phones on the same Wi-Fi can connect.
+    host: true,
     // And watch the build output, so rebuilding shared reloads the page rather
     // than leaving a stale module graph behind.
     watch: {
