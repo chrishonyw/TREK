@@ -434,7 +434,14 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
     }
   }
 
+  // Fork: an API key pasted into the URL field was saved as the base URL and
+  // every AI call then failed with "Invalid URL". Refuse anything that is not a URL.
+  const baseUrlInvalid = provider !== 'anthropic' && baseUrl.trim() !== '' && !/^https?:\/\/\S+$/i.test(baseUrl.trim())
   const save = async () => {
+    if (baseUrlInvalid) {
+      toast.error('Base URL must start with http:// or https:// — the API key goes in the API key field')
+      return
+    }
     setSaving(true)
     try {
       // Send the masked sentinel unchanged so the server keeps the stored key.
@@ -471,7 +478,8 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
       {provider !== 'anthropic' && (
         <label className="block">
           <span className={labelCls}>Base URL</span>
-          <input type="url" autoComplete="off" className={fieldCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
+          <input type="url" autoComplete="off" className={fieldCls} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} aria-invalid={baseUrlInvalid} />
+          {baseUrlInvalid && <p className="mt-1 text-caption text-danger">Base URL must start with http:// or https:// — paste the API key in the API key field.</p>}
         </label>
       )}
       <label className="block">

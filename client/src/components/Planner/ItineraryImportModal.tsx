@@ -5,7 +5,17 @@ import type { ItineraryImportCategory } from '@trek/shared'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { useItineraryImport, type ItineraryImportState, type PreviewDay } from './useItineraryImport'
 
-const ACCEPT = '.docx,.xlsx,.pdf,.txt,.md,.csv,.html,.htm,.eml'
+/**
+ * Extensions AND MIME types: iOS Files and several Android pickers match on
+ * MIME only, and with extensions alone they greyed out every Word and Excel
+ * file. The server re-checks the extension either way.
+ */
+const ACCEPT = [
+  '.docx', '.xlsx', '.pdf', '.txt', '.md', '.csv', '.html', '.htm', '.eml',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'text/html', 'message/rfc822',
+].join(',')
 
 const CATEGORY_EMOJI: Record<ItineraryImportCategory, string> = {
   restaurant: '🍽️', cafe: '☕', attraction: '🏛️', shopping: '🛍️', hotel: '🏨',

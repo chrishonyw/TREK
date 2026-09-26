@@ -1,3 +1,14 @@
+/**
+ * @file        itinerary-prompt.ts
+ * @description System prompt for the itinerary import and the normaliser that turns the model's
+ *              answer into contract-valid places, Plan A days, to-dos and city centres.
+ * @module      server/nest/itinerary-import
+ * @layer       backend
+ * @dependencies @trek/shared (itinerary-import schema)
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-26 — Ask the model for city centres to anchor geocoding. (see CHANGELOG.md)
+ */
 import {
   ITINERARY_IMPORT_CATEGORIES,
   ITINERARY_IMPORT_MEALS,
@@ -22,6 +33,8 @@ export interface ExtractedItinerary {
   places: ExtractedPlace[];
   plan: { day_number: number; place_keys: string[] }[];
   todos: string[];
+  /** City name → approximate centre, as the model knows it. Anchors geocoding. */
+  cities: Map<string, { lat: number; lng: number }>;
 }
 
 /**
@@ -41,7 +54,8 @@ export function buildItinerarySystemPrompt(tripTitle: string, days: PromptDay[])
     'Answer with ONLY one JSON object, no prose, no markdown fence, of this exact shape:',
     '{"places":[{"key":"p1","name":"","local_name":null,"city":null,"area":null,"category":"restaurant","notes":null,"rating":null,"url":null,"opening_hours":null,"tentative":false,"meal":null,"time":null,"source_day":null,"geocode_query":""}],',
     ' "plan":[{"day_number":1,"place_keys":["p1"]}],',
-    ' "todos":[""]}',
+    ' "todos":[""],',
+    ' "cities":[{"name":"旭川","lat":43.77,"lng":142.37}]}',
     'Leave out any field whose value would be null or false, to keep the answer short.',
     '',
     'PLACES — every distinct restaurant, cafe, sight, shop, market, museum, park, hotel or activity the notes mention:',
@@ -57,6 +71,8 @@ export function buildItinerarySystemPrompt(tripTitle: string, days: PromptDay[])
     `- meal: one of ${ITINERARY_IMPORT_MEALS.join(', ')} when it is meant for that meal, else null. time: "HH:MM" (24h) for a booked or fixed time, else null.`,
     '- source_day: the 1-based day number in the notes\' own day-by-day structure where it appears, or null when it is not under a day (appendix lists, general ideas).',
     '- geocode_query: the shortest distinctive name a local map search would know it by, in the local script, without the city (e.g. "米久本店", "GARAKU", "二条市場").',
+    '',
+    'CITIES — one entry for every distinct city used in "places", with its approximate centre coordinates (decimal degrees). Use the city the notes actually mean, in the country/region they are about, never a namesake elsewhere.',
     '',
     'TODOS — short action items and reminders from the notes (check, ask, book, buy, confirm…), in the notes\' language, with the date/day when known. Not places.',
     '',
@@ -175,5 +191,17 @@ export function normalizeExtraction(raw: unknown): ExtractedItinerary {
     .filter((t): t is string => !!t)
     .slice(0, 100);
 
-  return { places, plan, todos };
+  const cities = new Map<string, { lat: number; lng: number }>();
+  for (const c of Array.isArray(obj.cities) ? obj.cities : []) {
+    if (!c || typeof c !== 'object') continue;
+    const r = c as Record<string, unknown>;
+    const name = str(r.name, 100);
+    const lat = Number(r.lat);
+    const lng = Number(r.lng);
+    if (name && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0)) {
+      cities.set(name, { lat, lng });
+    }
+  }
+
+  return { places, plan, todos, cities };
 }

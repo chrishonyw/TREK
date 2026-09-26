@@ -1,3 +1,15 @@
+/**
+ * @file        itinerary-import.service.ts
+ * @description Itinerary import: planning document -> AI -> geocoded places + Plan A preview,
+ *              and the transactional confirm that writes places, day assignments and to-dos.
+ * @module      server/nest/itinerary-import
+ * @layer       backend
+ * @dependencies DatabaseService, LlmConfigResolver, MapsService, PlacesService, AssignmentsService,
+ *              PermissionsService, TodoService, trek-places client
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-26 — Model-given city centres, index retry, 90 s geocoding budget. (see CHANGELOG.md)
+ */
 import { HttpException, Injectable } from '@nestjs/common';
 import {
   normalizePlaceWebsite,
@@ -30,6 +42,12 @@ import {
 const MAX_TEXT_CHARS = 60_000;
 /** Geocoding runs a few at a time: the TREK index is quick, Nominatim is throttled process-wide anyway. */
 const GEOCODE_CONCURRENCY = 4;
+/**
+ * Stop looking up new places after this long. A phone that locks its screen
+ * drops a request that has been waiting for minutes; places not reached in time
+ * are still imported, just without a location.
+ */
+const GEOCODE_BUDGET_MS = 90_000;
 
 /** Our categories → the names TREK seeds. Matched case-insensitively; a renamed category just stays unset. */
 const CATEGORY_NAMES: Record<ItineraryImportCategory, string[]> = {
@@ -110,7 +128,7 @@ export class ItineraryImportService {
     }
 
     const geoStart = Date.now();
-    await this.geocodeAll(extracted.places);
+    await this.geocodeAll(extracted.places, extracted.cities);
     console.warn(`[itinerary-import] geocoded ${extracted.places.length} place(s) in ${Math.round((Date.now() - geoStart) / 1000)}s`);
 
     const byNumber = new Map(days.map((d) => [d.day_number, d]));
@@ -255,13 +273,17 @@ export class ItineraryImportService {
    * place gets one Nominatim try as "name city" — one, because every Nominatim
    * call waits for a process-wide 1.1 s slot.
    */
-  private async geocodeAll(places: ExtractedPlace[]): Promise<void> {
-    // City centres come from Nominatim, not the TREK index: the index is a
-    // business directory, and its top hit for "札幌" is a shop called 札幌 in
-    // Nagano — which then disqualified every real place in Sapporo as too far.
+  private async geocodeAll(places: ExtractedPlace[], knownCentres: Map<string, LatLng> = new Map()): Promise<void> {
+    // City centres come first from the model, which knows which 旭川 the notes
+    // mean; a bare-name lookup put it at a namesake in Akita, 480 km away, and
+    // disqualified every real place in Asahikawa. Nominatim is the fallback, and
+    // never the TREK index: that is a business directory, whose top hit for
+    // "札幌" is a shop called 札幌 in Nagano.
     const cityCentres = new Map<string, Promise<LatLng | null>>();
     const centreOf = (city: string | null | undefined) => {
       if (!city) return Promise.resolve(null);
+      const known = knownCentres.get(city);
+      if (known) return Promise.resolve(known);
       let c = cityCentres.get(city);
       if (!c) {
         c = this.maps
@@ -276,8 +298,9 @@ export class ItineraryImportService {
       return c;
     };
     let next = 0;
+    const deadline = Date.now() + GEOCODE_BUDGET_MS;
     const worker = async () => {
-      while (next < places.length) {
+      while (next < places.length && Date.now() < deadline) {
         const p = places[next++];
         const hit = await this.locate(p, await centreOf(p.city));
         if (hit) {
@@ -293,13 +316,10 @@ export class ItineraryImportService {
     const near = (h: LatLng) => !centre || distanceKm(centre, h) <= CITY_RADIUS_KM;
     if (this.maps.trekPlacesEnabled()) {
       for (const q of nameQueries(p)) {
-        try {
-          const hits = await trekPlacesSearch(q, { limit: 5, ...(centre ?? {}) });
-          const hit = hits.find((h) => Number.isFinite(h.lat) && Number.isFinite(h.lng) && near(h));
-          if (hit) return { lat: hit.lat, lng: hit.lng };
-        } catch {
-          break; // the index is down; Nominatim below still gets its one try
-        }
+        const hits = await searchIndexWithRetry(q, centre);
+        if (hits === null) break; // the index is down; Nominatim below still gets its one try
+        const hit = hits.find((h) => Number.isFinite(h.lat) && Number.isFinite(h.lng) && near(h));
+        if (hit) return { lat: hit.lat, lng: hit.lng };
       }
     }
     const name = p.local_name || p.name;
@@ -314,6 +334,28 @@ export class ItineraryImportService {
 }
 
 type LatLng = { lat: number; lng: number };
+
+/**
+ * One TREK index search, retried once after a short pause.
+ *
+ * Four parallel workers on a long document hit the index's rate limit, and the
+ * first version gave up on the whole place at the first refusal — which is how
+ * 旭山動物園 came back "not on the map" although the index knows it.
+ * @param {string} q - Search text.
+ * @param {LatLng | null} centre - City centre to bias towards, when known.
+ * @returns {Promise<Array<{lat:number,lng:number}> | null>} Hits, or null when the index stayed unreachable.
+ */
+async function searchIndexWithRetry(q: string, centre: LatLng | null): Promise<{ lat: number; lng: number }[] | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await trekPlacesSearch(q, { limit: 5, ...(centre ?? {}) });
+    } catch (err) {
+      console.warn(`[itinerary-import] place index search failed (attempt ${attempt + 1}) for "${q}":`, err instanceof Error ? err.message : err);
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+  }
+  return null;
+}
 
 /** A place further than this from its city's centre is a namesake, not the place. */
 const CITY_RADIUS_KM = 60;

@@ -3,7 +3,7 @@
 - **Feature:** turn a planning document (Word / Excel / PDF / text) into places, to-dos and a "Plan A" day plan.
 - **Branch:** `feature/itinerary-import`
 - **Last updated:** 2026-09-26
-- **Sample inputs:** `docs/guides/samples/sample-hokkaido-notes.txt`, `docs/guides/samples/sample-hokkaido-plan.xlsx`, and your own `東京青森12天.docx`.
+- **Sample inputs:** `docs/guides/samples/sample-hokkaido-notes.txt`, `docs/guides/samples/sample-hokkaido-plan.xlsx`, and your own `北海道冰雪祭典行程_2027-02-03至17.docx` / `東京青森12天.docx`.
 
 ---
 
@@ -11,8 +11,8 @@
 
 | # | Step | Expected |
 |---|---|---|
-| 0.1 | On the computer, start TREK (`start-trek.bat`, or `npm run dev` in the repo root). | Terminal shows `TREK API started` and `Network: http://192.168.5.5:5173/`. |
-| 0.2 | Admin → Addons → **AI Parsing**: switched on, Provider `OpenAI`, Base URL `https://generativelanguage.googleapis.com/v1beta/openai`, a **valid** Gemini API key, Model `gemini-3.5-flash`. Save. | "Saved" toast. |
+| 0.1 | On the computer, start TREK with **`npm run start:local`** in the repo root (or double-click `start-trek.bat`). Do **not** use `npm run dev` for testing: its auto-restart kills the AI request on Windows. | Terminal shows `TREK API started` and `Network: http://192.168.5.5:5173/`. |
+| 0.2 | Admin → Addons → **AI Parsing**: switched on, Provider `OpenAI`, **Base URL** `https://generativelanguage.googleapis.com/v1beta/openai`, **API key** = the key from AI Studio → API Keys → *Copy key* (it starts with `AQ.`), Model `gemini-3.5-flash`. Save. | "Saved" toast. Pasting the key into Base URL is refused with a red hint. |
 | 0.3 | Phone: join the same Wi-Fi, open `http://192.168.5.5:5173`, log in. | Trip list shows. If the page never loads, turn off the Surfshark VPN (or allow LAN access) on phone and computer. |
 | 0.4 | Tip: test on a **throwaway trip with dates** (e.g. "Test trip", 5 days), so imports do not clutter a real trip. | — |
 
@@ -84,6 +84,15 @@ Each scenario: run it on **desktop** and on **phone** (the dialog is shared, so 
 - The "晚飯? 上野食咩" candidates are marked Undecided with a Dinner badge.
 - The to-dos include the JR / booking reminders.
 - On a **Hokkaido** trip, Plan A is empty with the note that the document is about a different destination. That is correct behaviour.
+
+### TC-06b — Hokkaido festival Word file (real AI verified 2026-09-26)
+1. On the **北海道冰雪祭2027** trip (or a 15-day test trip from 2027-02-03): **Upload file** → `北海道冰雪祭典行程_2027-02-03至17.docx` → **Analyse**.
+
+**Expected (measured with gemini-3.5-flash, about 25 s):**
+- About 16 places.
+- Plan A follows the document: Day 1 支笏湖冰濤祭 → Day 2 札幌雪祭 → … → Day 10 紋別流冰節 → Day 13 二條市場.
+- 6 booking to-dos (JR 特急, 破冰船, 流冰巴士, …).
+- Festival events (旭川冬祭, 層雲峽冰瀑祭, 紋別流冰節) may show **Not on map**. This is normal: the map index lists venues, not events.
 
 ### TC-07 — Re-import the same document (no duplicates)
 1. Run TC-03, then import the same text again into the same trip.

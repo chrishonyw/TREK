@@ -1,4 +1,5 @@
 @echo off
+rem Windows convenience wrapper only; the portable command is `npm run start:local`.
 cd /d "%~dp0"
 if not exist node_modules (
   echo Installing dependencies...
@@ -8,4 +9,4 @@ if not exist node_modules (
   popd
 )
 start "" http://localhost:5173
-npm run dev
+npm run start:local

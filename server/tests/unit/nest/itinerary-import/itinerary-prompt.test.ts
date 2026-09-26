@@ -79,8 +79,24 @@ describe('normalizeExtraction', () => {
   });
 
   it('survives an answer with nothing usable in it', () => {
-    expect(normalizeExtraction(null)).toEqual({ places: [], plan: [], todos: [] });
+    expect(normalizeExtraction(null)).toEqual({ places: [], plan: [], todos: [], cities: new Map() });
     expect(normalizeExtraction({ places: 'nope', plan: {}, todos: [1, '', ' check hotel '] }).todos).toEqual(['1', 'check hotel']);
+  });
+});
+
+describe('normalizeExtraction cities', () => {
+  it('keeps valid city centres and drops broken ones', () => {
+    const out = normalizeExtraction({
+      places: [],
+      cities: [
+        { name: '旭川', lat: 43.77, lng: 142.37 },
+        { name: 'Nowhere', lat: 0, lng: 0 },
+        { name: 'Bad', lat: 'x', lng: 1 },
+        { name: 'Far', lat: 123, lng: 1 },
+        'nope',
+      ],
+    });
+    expect([...out.cities.entries()]).toEqual([['旭川', { lat: 43.77, lng: 142.37 }]]);
   });
 });
 
