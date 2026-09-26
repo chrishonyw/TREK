@@ -176,5 +176,8 @@ const places: TranslationStrings = {
   'itineraryImport.meal.breakfast': 'Breakfast',
   'itineraryImport.meal.lunch': 'Lunch',
   'itineraryImport.meal.dinner': 'Dinner',
+  'itineraryImport.todosHint': 'Ticked to-dos are added to the trip to-do list.',
+  'itineraryImport.todoCategory': 'From document',
+  'itineraryImport.todosAdded': '{count} to-dos added',
 };
 export default places;

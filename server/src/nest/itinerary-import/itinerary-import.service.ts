@@ -15,6 +15,7 @@ import { trekPlacesSearch } from '../maps/trek-places.client';
 import { PlacesService } from '../places/places.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { TodoService } from '../todo/todo.service';
 import { extractItineraryText } from './itinerary-text';
 import { completeJson } from './itinerary-llm';
 import {
@@ -65,6 +66,7 @@ export class ItineraryImportService {
     private readonly places: PlacesService,
     private readonly assignments: AssignmentsService,
     private readonly permissions: PermissionsService,
+    private readonly todo: TodoService,
   ) {}
 
   aiAvailable(userId: number): boolean {
@@ -138,21 +140,29 @@ export class ItineraryImportService {
   confirm(
     tripId: string,
     user: User,
-    body: { places: ItineraryImportPlace[]; plan: ItineraryImportPlanDay[]; tentative_tag_name: string },
+    body: {
+      places: ItineraryImportPlace[];
+      plan: ItineraryImportPlanDay[];
+      tentative_tag_name: string;
+      todos: string[];
+      todo_category?: string | null;
+    },
     socketId?: string,
   ): ItineraryImportConfirmResponse {
     const trip = this.dbs.canAccessTrip(tripId, user.id);
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
-    if (body.plan.length && !this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id)) {
-      throw new HttpException({ error: 'No permission' }, 403);
-    }
+    const can = (action: string) => this.permissions.checkPermission(action, user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    // Each part needs the right its own route would: day plan → day_edit,
+    // to-do list → packing_edit (the to-do controller's action).
+    if (body.plan.length && !can('day_edit')) throw new HttpException({ error: 'No permission' }, 403);
+    if (body.todos.length && !can('packing_edit')) throw new HttpException({ error: 'No permission' }, 403);
 
     const categoryIds = this.categoryIds();
     const dayIds = new Set(this.tripDays(tripId).map((d) => d.id));
 
     // All or nothing: a failure halfway must not leave half a document on the
     // trip. Broadcasts wait until the rows are committed.
-    const { createdPlaces, createdAssignments, skipped } = this.dbs.transaction(() => {
+    const { createdPlaces, createdAssignments, createdTodos, skipped } = this.dbs.transaction(() => {
       const tentativeTagId = body.places.some((p) => p.tentative) ? this.tentativeTag(user.id, body.tentative_tag_name) : null;
       const keyToPlaceId = new Map<string, number>();
       const createdPlaces: ReturnType<PlacesService['create']>[] = [];
@@ -192,7 +202,8 @@ export class ItineraryImportService {
           if (assignment) createdAssignments.push(assignment);
         }
       }
-      return { createdPlaces, createdAssignments, skipped };
+      const createdTodos = body.todos.map((name) => this.todo.createItem(tripId, { name, category: body.todo_category ?? undefined }));
+      return { createdPlaces, createdAssignments, createdTodos, skipped };
     });
 
     for (const place of createdPlaces) {
@@ -203,10 +214,13 @@ export class ItineraryImportService {
       this.assignments.broadcast(tripId, 'assignment:created', { assignment }, socketId);
     }
     if (createdAssignments.length) this.assignments.reconcile(tripId, socketId);
+    for (const item of createdTodos) {
+      if (item) this.todo.broadcast(tripId, 'todo:created', { item } as never, socketId);
+    }
 
     const created = createdPlaces.length;
     const assigned = createdAssignments.length;
-    return { created, skipped, assigned };
+    return { created, skipped, assigned, todos_added: createdTodos.length };
   }
 
   private tripDays(tripId: string): DayRow[] {

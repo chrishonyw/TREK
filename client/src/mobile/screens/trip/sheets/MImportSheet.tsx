@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Download, FileDown, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, FileDown, MapPin, Sparkles } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
 import { FormSheetHeader } from './PlSheetChrome'
 import ImpFileStep from './ImpFileStep'
 import ImpListStep from './ImpListStep'
+import ItineraryImportModal from '../../../../components/Planner/ItineraryImportModal'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MImportSheetProps {
@@ -22,8 +23,11 @@ type ImportStep = 'menu' | 'file' | 'list'
  * shared-list import (same flows as the desktop PlacesSidebar).
  */
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
-  const { t } = planner
+  const { t, tripId } = planner
   const [step, setStep] = useState<ImportStep>('menu')
+  // The AI import is the desktop dialog, opened over the sheet: it is already
+  // a full-width, scrolling portal, so the phone needs no second copy of it.
+  const [aiOpen, setAiOpen] = useState(false)
 
   useEffect(() => {
     if (open) setStep('menu')
@@ -33,6 +37,8 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
     step === 'file' ? t('places.importFile') : step === 'list' ? t('places.importList') : t('mobileTrip.importPlaces')
 
   return (
+    <>
+    {aiOpen && <ItineraryImportModal tripId={Number(tripId)} onClose={() => { setAiOpen(false); onClose() }} />}
     <MSheet open={open} onClose={onClose} ariaLabel={t('mobileTrip.importPlaces')}>
       <FormSheetHeader
         icon={Download}
@@ -63,11 +69,19 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
             onClick={() => setStep('list')}
             className="mt-2"
           />
+          <ImpMenuRow
+            icon={Sparkles}
+            title={t('itineraryImport.button')}
+            sub="Word · Excel · PDF"
+            onClick={() => setAiOpen(true)}
+            className="mt-2"
+          />
         </div>
       )}
       {step === 'file' && <ImpFileStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
       {step === 'list' && <ImpListStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
     </MSheet>
+    </>
   )
 }
 

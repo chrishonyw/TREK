@@ -38,6 +38,8 @@ export function useItineraryImport(tripId: number, onClose: () => void) {
   /** key → day_id, or null for "not planned". */
   const [dayOf, setDayOf] = useState<Map<string, number | null>>(new Map())
   const [applyPlan, setApplyPlan] = useState(true)
+  /** Indexes of the document's to-dos that go to the trip's to-do list. */
+  const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
   const abortRef = useRef<AbortController | null>(null)
 
   /** Every trip day is a target, not only the ones the AI used. */
@@ -65,6 +67,7 @@ export function useItineraryImport(tripId: number, onClose: () => void) {
       for (const d of result.plan) for (const k of d.place_keys) map.set(k, d.day_id)
       setDayOf(map)
       setApplyPlan(result.plan.length > 0)
+      setSelectedTodos(new Set(result.todos.map((_, i) => i)))
       setStep('preview')
     } catch (err: unknown) {
       if (controller.signal.aborted) {
@@ -90,6 +93,13 @@ export function useItineraryImport(tripId: number, onClose: () => void) {
     })
   const selectAll = (on: boolean) => setSelected(on ? new Set(preview?.places.map((p) => p.key)) : new Set())
   const moveToDay = (key: string, dayId: number | null) => setDayOf((prev) => new Map(prev).set(key, dayId))
+  const toggleTodo = (i: number) =>
+    setSelectedTodos((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
 
   /**
    * The plan as it now stands: the AI's order for the places it planned, then
@@ -121,10 +131,13 @@ export function useItineraryImport(tripId: number, onClose: () => void) {
         places,
         plan: applyPlan ? plan.map((d) => ({ day_id: d.day_id, place_keys: d.place_keys })) : [],
         tentative_tag_name: t('itineraryImport.tentativeTag'),
+        todos: preview.todos.filter((_, i) => selectedTodos.has(i)),
+        todo_category: t('itineraryImport.todoCategory'),
       })
       await loadTrip(tripId)
       toast.success(
         t('itineraryImport.success', { created: result.created, assigned: result.assigned }) +
+          (result.todos_added ? ` · ${t('itineraryImport.todosAdded', { count: result.todos_added })}` : '') +
           (result.skipped ? ` · ${t('itineraryImport.skipped', { skipped: result.skipped })}` : ''),
       )
       onClose()
@@ -144,7 +157,7 @@ export function useItineraryImport(tripId: number, onClose: () => void) {
     t, step, mode, setMode, file, setFile, text, setText, error, aiEnabled,
     canAnalyze, analyze, cancelAnalyze,
     preview, days, selected, toggle, selectAll, dayOf, moveToDay, plan, byKey,
-    applyPlan, setApplyPlan, confirm, back,
+    applyPlan, setApplyPlan, selectedTodos, toggleTodo, confirm, back,
   }
 }
 

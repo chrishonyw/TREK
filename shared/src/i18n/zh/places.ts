@@ -172,5 +172,8 @@ const places: TranslationStrings = {
   'itineraryImport.meal.breakfast': '早餐',
   'itineraryImport.meal.lunch': '午餐',
   'itineraryImport.meal.dinner': '晚餐',
+  'itineraryImport.todosHint': '勾选的待办事项会加入行程的待办清单。',
+  'itineraryImport.todoCategory': '文件导入',
+  'itineraryImport.todosAdded': '已加入 {count} 项待办',
 };
 export default places;

@@ -212,10 +212,14 @@ function PreviewStep({ S }: { S: ItineraryImportState }) {
         </Section>
 
         {p.todos.length > 0 && (
-          <Section title={S.t('itineraryImport.todosTitle')}>
-            <ul className="text-content" style={{ ...caption, margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-              {p.todos.map(todo => <li key={todo} style={{ userSelect: 'text' }}>{todo}</li>)}
-            </ul>
+          <Section title={`${S.t('itineraryImport.todosTitle')} (${S.selectedTodos.size}/${p.todos.length})`}>
+            <div className="text-content-faint" style={{ ...caption, marginBottom: 4 }}>{S.t('itineraryImport.todosHint')}</div>
+            {p.todos.map((todo, i) => (
+              <label key={`${i}-${todo}`} className="text-content" style={{ ...caption, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 0', lineHeight: 1.5, cursor: 'pointer' }}>
+                <input type="checkbox" checked={S.selectedTodos.has(i)} onChange={() => S.toggleTodo(i)} style={{ marginTop: 2, flexShrink: 0 }} />
+                <span>{todo}</span>
+              </label>
+            ))}
           </Section>
         )}
       </div>

@@ -8,10 +8,11 @@ import { AssignmentsDomainModule } from '../assignments/assignments-domain.modul
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AddonsModule } from '../addons/addons.module';
 import { AuthModule } from '../auth/auth.module';
+import { TodoModule } from '../todo/todo.module';
 
 /** Planning document → places + Plan A, on the configured AI model. */
 @Module({
-  imports: [LlmParseModule, MapsModule, PlacesModule, AssignmentsDomainModule, PermissionsModule, AddonsModule, AuthModule],
+  imports: [LlmParseModule, MapsModule, PlacesModule, AssignmentsDomainModule, PermissionsModule, AddonsModule, AuthModule, TodoModule],
   controllers: [ItineraryImportController],
   providers: [ItineraryImportService],
 })

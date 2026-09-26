@@ -84,6 +84,10 @@ export const itineraryImportConfirmRequestSchema = z.object({
   plan: z.array(itineraryImportPlanDaySchema).max(366).default([]),
   /** Localised name of the tag put on tentative places ("未決定"). */
   tentative_tag_name: z.string().min(1).max(50).default('Tentative'),
+  /** To-dos from the document the traveller kept; added to the trip's to-do list. */
+  todos: z.array(z.string().min(1).max(300)).max(100).default([]),
+  /** Localised category the added to-dos are filed under. */
+  todo_category: z.string().min(1).max(50).nullish(),
 });
 export type ItineraryImportConfirmRequest = z.input<typeof itineraryImportConfirmRequestSchema>;
 
@@ -91,5 +95,6 @@ export const itineraryImportConfirmResponseSchema = z.object({
   created: z.number(),
   skipped: z.number(),
   assigned: z.number(),
+  todos_added: z.number(),
 });
 export type ItineraryImportConfirmResponse = z.infer<typeof itineraryImportConfirmResponseSchema>;
