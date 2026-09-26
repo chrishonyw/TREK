@@ -1,3 +1,15 @@
+/**
+ * @file        itinerary-llm.ts
+ * @description One JSON-answering call to the configured AI provider (OpenAI-compatible
+ *              or Anthropic) for the itinerary import, with overload retries, a Gemini
+ *              busy-model fallback and plain-language errors.
+ * @module      server/nest/itinerary-import
+ * @layer       backend
+ * @dependencies llm-parse/llm-config, llm-parse/lenient-json, utils/ssrfGuard, app-config
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-26 — Rejected API keys now surface as a clear "update the key" message. (see CHANGELOG.md)
+ */
 import type { ResolvedLlmConfig } from '../llm-parse/llm-config';
 import { parseLenientJson } from '../llm-parse/lenient-json';
 import { safeFetchLlm } from '../../utils/ssrfGuard';
@@ -55,6 +67,8 @@ async function openAiCompatible(config: ResolvedLlmConfig, system: string, user:
   let res = await send(`${base}/chat/completions`, body, { authorization: config.apiKey ? `Bearer ${config.apiKey}` : undefined });
   for (let i = 0; i < 5 && res.status === 400; i++) {
     const detail = await res.text().catch(() => '');
+    // A key problem is not a parameter problem: stop instead of retrying without them.
+    if (isKeyProblem(400, detail)) throw providerError(400, detail);
     if (/reasoning/i.test(detail) && 'reasoning_effort' in body) {
       delete body.reasoning_effort;
     } else if (/max_(completion_)?tokens/.test(detail) && /(too large|maximum|at most|exceed|less than|range)/i.test(detail) && body[tokenKey()] !== FALLBACK_MAX_TOKENS) {
@@ -67,11 +81,11 @@ async function openAiCompatible(config: ResolvedLlmConfig, system: string, user:
     } else if ('response_format' in body) {
       delete body.response_format;
     } else {
-      throw new Error(`AI request failed (400): ${detail.slice(0, 300)}`);
+      throw providerError(400, detail);
     }
     res = await send(`${base}/chat/completions`, body, { authorization: config.apiKey ? `Bearer ${config.apiKey}` : undefined });
   }
-  if (!res.ok) throw new Error(`AI request failed (${res.status}): ${(await res.text().catch(() => '')).slice(0, 300)}`);
+  if (!res.ok) throw providerError(res.status, await res.text().catch(() => ''));
   const data = (await res.json()) as { choices?: { message?: { content?: string }; finish_reason?: string }[] };
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('the answer was cut off — the document is too long for one pass');
   return data.choices?.[0]?.message?.content;
@@ -84,7 +98,7 @@ async function anthropic(config: ResolvedLlmConfig, system: string, user: string
     { model: config.model, max_tokens: 32000, system, messages: [{ role: 'user', content: user }] },
     { 'x-api-key': config.apiKey ?? '', 'anthropic-version': ANTHROPIC_VERSION },
   );
-  if (!res.ok) throw new Error(`AI request failed (${res.status}): ${(await res.text().catch(() => '')).slice(0, 300)}`);
+  if (!res.ok) throw providerError(res.status, await res.text().catch(() => ''));
   const data = (await res.json()) as { stop_reason?: string; content?: { type: string; text?: string }[] };
   if (data.stop_reason === 'max_tokens') throw new Error('the answer was cut off — the document is too long for one pass');
   return data.content?.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('');
@@ -136,6 +150,34 @@ async function send(url: string, body: unknown, headers: Record<string, string |
     await res.text().catch(() => '');
     await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
   }
+}
+
+/**
+ * Turn a provider's error answer into something the traveller can act on.
+ *
+ * A revoked or missing key comes back from Gemini as a 400 "Missing or invalid
+ * Authorization header" and from others as 401/403; relaying that JSON to a phone
+ * screen told nobody that the fix is to paste a new key in the admin panel.
+ * @param {number} status - HTTP status the provider answered with.
+ * @param {string} detail - Raw response body, used only when it is not a key problem.
+ * @returns {Error} The error to throw.
+ */
+export function providerError(status: number, detail: string): Error {
+  // SECURITY: never echo the request headers back; only the provider's own message is used.
+  if (isKeyProblem(status, detail)) {
+    return new Error('the AI provider rejected the API key. Paste a valid key under Admin → Addons → AI Parsing.');
+  }
+  return new Error(`AI request failed (${status}): ${detail.slice(0, 300)}`);
+}
+
+/**
+ * Whether a provider error means the API key is missing, revoked or not allowed.
+ * @param {number} status - HTTP status the provider answered with.
+ * @param {string} detail - Raw response body.
+ * @returns {boolean} True for 401/403 or a body that names the key/authorization.
+ */
+export function isKeyProblem(status: number, detail: string): boolean {
+  return status === 401 || status === 403 || /authoriz|api[ _-]?key|permission_denied|unauthenticated/i.test(detail);
 }
 
 /** The outermost {...} of an answer that wrapped its JSON in prose. */
