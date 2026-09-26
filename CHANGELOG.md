@@ -12,7 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 2026-09-26 — Ticked to-dos from an imported document are added to the trip's to-do list.
 - 2026-09-26 — `start-trek.bat` one-click start on Windows (installs with `--ignore-scripts`, since `better-sqlite3` ships a win32 prebuild).
 
+- 2026-09-26 — Test scenarios and sample inputs for the AI itinerary import: `docs/guides/test-scenarios-ai-itinerary-import.md`, `docs/guides/samples/`.
+
 ### Changed
+- 2026-09-26 — AI itinerary import is easier to find: an always-visible "✨ AI import" button beside Export in the day-plan panel (desktop), a round ✨ button in the phone Places header, and an accent-coloured button in the places sidebar.
 - 2026-09-26 — Vite dev server listens on all interfaces (`server.host: true`) so phones on the same Wi-Fi can connect.
 - 2026-09-26 — Itinerary import: a rejected AI API key now shows "paste a valid key under Admin → Addons → AI Parsing" instead of the provider's raw JSON, and no longer retries the request with fewer parameters.
 

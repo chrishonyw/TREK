@@ -175,5 +175,6 @@ const places: TranslationStrings = {
   'itineraryImport.todosHint': '勾选的待办事项会加入行程的待办清单。',
   'itineraryImport.todoCategory': '文件导入',
   'itineraryImport.todosAdded': '已加入 {count} 项待办',
+  'itineraryImport.shortButton': 'AI 导入',
 };
 export default places;

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, Download, Undo2, ArrowUpDown, Route as RouteIcon } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, Download, Undo2, ArrowUpDown, Route as RouteIcon, Sparkles } from 'lucide-react'
 import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { TripExportModal } from './TripExportModal'
+import ItineraryImportModal from './ItineraryImportModal'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import type { DayAddControls } from '../../utils/dayAdd'
 import type { DayDeleteQuestion } from '../../utils/dayImpactLines'
@@ -56,10 +57,33 @@ export function DayPlanSidebarToolbar({
 }: DayPlanSidebarToolbarProps) {
   const [reorderOpen, setReorderOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [aiImportOpen, setAiImportOpen] = useState(false)
 
   return (
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        {/* Fork: the AI itinerary import also lives here, because the places
+            sidebar that holds its first button starts collapsed and nobody found it. */}
+        {canEditDays && (
+          <Tooltip label={t('itineraryImport.title')} placement="bottom">
+            <button
+              type="button"
+              onClick={() => setAiImportOpen(true)}
+              aria-haspopup="dialog"
+              className="bg-accent text-accent-text"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '5px 10px', borderRadius: 8, border: 'none',
+                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <Sparkles size={13} strokeWidth={2} />
+              {t('itineraryImport.shortButton')}
+            </button>
+          </Tooltip>
+        )}
+        {aiImportOpen && <ItineraryImportModal tripId={tripId} onClose={() => setAiImportOpen(false)} />}
         {/* One export button instead of three: PDF, ICS and GPX each carried
             their own hover menu, and on a narrower sidebar the row ran out of
             width and pushed them off the edge. The dialog holds every option. */}

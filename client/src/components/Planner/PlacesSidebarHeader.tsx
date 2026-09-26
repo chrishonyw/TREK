@@ -150,11 +150,11 @@ export function PlacesHeader(S: SidebarState) {
           three and it is the one worth noticing. */}
       <button type="button"
         onClick={() => setItineraryImportOpen(true)}
-        className="border border-dashed border-edge text-content-faint"
+        className="bg-accent text-accent-text"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-          width: '100%', padding: '5px 12px', borderRadius: 8, marginBottom: 10,
-          background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
+          width: '100%', padding: '6px 12px', borderRadius: 8, marginBottom: 10, border: 'none',
+          fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
           cursor: 'pointer', fontFamily: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap',
         }}
       >

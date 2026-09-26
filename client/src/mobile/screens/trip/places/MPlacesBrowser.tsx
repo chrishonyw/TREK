@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
   Bookmark, Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
-  SlidersHorizontal, Tag, Trash2, X,
+  SlidersHorizontal, Sparkles, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTripStore } from '../../../../store/tripStore'
@@ -21,6 +21,7 @@ import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
+import ItineraryImportModal from '../../../../components/Planner/ItineraryImportModal'
 import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
 
 /**
@@ -39,6 +40,8 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   // The planner hook carries `t` but not the locale; day labels need both.
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
+  // Fork: the AI itinerary import one tap away, not behind the import sheet.
+  const [aiImportOpen, setAiImportOpen] = useState(false)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
 
   const filter = useTripStore(s => s.placesFilter)
@@ -187,6 +190,17 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               <Download size={16} strokeWidth={2} />
             </button>
           )}
+          {canEditPlaces && (
+            <button
+              type="button"
+              onClick={() => setAiImportOpen(true)}
+              aria-label={t('itineraryImport.button')}
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-accent text-accent-text"
+            >
+              <Sparkles size={16} strokeWidth={2} />
+            </button>
+          )}
+          {aiImportOpen && <ItineraryImportModal tripId={Number(planner.tripId)} onClose={() => setAiImportOpen(false)} />}
         </div>
 
         {/* ── Search + category filter + select toggle ── */}

@@ -179,5 +179,6 @@ const places: TranslationStrings = {
   'itineraryImport.todosHint': 'Ticked to-dos are added to the trip to-do list.',
   'itineraryImport.todoCategory': 'From document',
   'itineraryImport.todosAdded': '{count} to-dos added',
+  'itineraryImport.shortButton': 'AI import',
 };
 export default places;
