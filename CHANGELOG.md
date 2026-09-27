@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 2026-09-26 — Ticked to-dos from an imported document are added to the trip's to-do list.
 - 2026-09-26 — `start-trek.bat` one-click start on Windows (installs with `--ignore-scripts`, since `better-sqlite3` ships a win32 prebuild).
 
+- 2026-09-27 — `docs/lessons-learned.md`: root causes and prevention for the six AI-import incidents of 2026-09-26.
 - 2026-09-26 — Test scenarios and sample inputs for the AI itinerary import: `docs/guides/test-scenarios-ai-itinerary-import.md`, `docs/guides/samples/`.
 
 ### Changed
