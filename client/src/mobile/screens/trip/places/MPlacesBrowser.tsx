@@ -21,7 +21,7 @@ import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
-import ItineraryImportModal from '../../../../components/Planner/ItineraryImportModal'
+import { useItineraryImportUi } from '../../../../store/itineraryImportUiStore'
 import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
 
 /**
@@ -41,7 +41,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   // Fork: the AI itinerary import one tap away, not behind the import sheet.
-  const [aiImportOpen, setAiImportOpen] = useState(false)
+  const openAiImport = useItineraryImportUi(s => s.open)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
 
   const filter = useTripStore(s => s.placesFilter)
@@ -193,14 +193,13 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
           {canEditPlaces && (
             <button
               type="button"
-              onClick={() => setAiImportOpen(true)}
+              onClick={() => openAiImport(Number(planner.tripId))}
               aria-label={t('itineraryImport.button')}
               className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-accent text-accent-text"
             >
               <Sparkles size={16} strokeWidth={2} />
             </button>
           )}
-          {aiImportOpen && <ItineraryImportModal tripId={Number(planner.tripId)} onClose={() => setAiImportOpen(false)} />}
         </div>
 
         {/* ── Search + category filter + select toggle ── */}

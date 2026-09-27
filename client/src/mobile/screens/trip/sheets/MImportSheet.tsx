@@ -6,7 +6,7 @@ import MIconBtn from '../../../components/MIconBtn'
 import { FormSheetHeader } from './PlSheetChrome'
 import ImpFileStep from './ImpFileStep'
 import ImpListStep from './ImpListStep'
-import ItineraryImportModal from '../../../../components/Planner/ItineraryImportModal'
+import { useItineraryImportUi } from '../../../../store/itineraryImportUiStore'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MImportSheetProps {
@@ -25,9 +25,9 @@ type ImportStep = 'menu' | 'file' | 'list'
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
   const { t, tripId } = planner
   const [step, setStep] = useState<ImportStep>('menu')
-  // The AI import is the desktop dialog, opened over the sheet: it is already
-  // a full-width, scrolling portal, so the phone needs no second copy of it.
-  const [aiOpen, setAiOpen] = useState(false)
+  // The AI import is the shared dialog, hosted at the app root (see
+  // itineraryImportUiStore): the sheet only asks for it and closes itself.
+  const openAiImport = useItineraryImportUi(s => s.open)
 
   useEffect(() => {
     if (open) setStep('menu')
@@ -37,8 +37,6 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
     step === 'file' ? t('places.importFile') : step === 'list' ? t('places.importList') : t('mobileTrip.importPlaces')
 
   return (
-    <>
-    {aiOpen && <ItineraryImportModal tripId={Number(tripId)} onClose={() => { setAiOpen(false); onClose() }} />}
     <MSheet open={open} onClose={onClose} ariaLabel={t('mobileTrip.importPlaces')}>
       <FormSheetHeader
         icon={Download}
@@ -73,7 +71,7 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
             icon={Sparkles}
             title={t('itineraryImport.button')}
             sub="Word · Excel · PDF"
-            onClick={() => setAiOpen(true)}
+            onClick={() => { onClose(); openAiImport(Number(tripId)) }}
             className="mt-2"
           />
         </div>
@@ -81,7 +79,6 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
       {step === 'file' && <ImpFileStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
       {step === 'list' && <ImpListStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
     </MSheet>
-    </>
   )
 }
 

@@ -10,6 +10,7 @@ import { usePluginStore } from './store/pluginStore'
 // form would slow down the single screen that has to be there immediately.
 import LoginPage from './pages/LoginPage'
 import { ToastContainer } from './components/shared/Toast'
+import { ItineraryImportHost } from './components/Planner/ItineraryImportModal'
 import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
 import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
 import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
@@ -384,6 +385,8 @@ export default function App() {
       <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
       {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
       {!hideAuthedWidgets && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
+      {/* Fork: AI itinerary import dialog, at the root so a trip reload cannot unmount it. */}
+      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:itinerary-import" fallback={null}><ItineraryImportHost /></ErrorBoundary>}
       <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,

@@ -12,10 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 2026-09-26 — Ticked to-dos from an imported document are added to the trip's to-do list.
 - 2026-09-26 — `start-trek.bat` one-click start on Windows (installs with `--ignore-scripts`, since `better-sqlite3` ships a win32 prebuild).
 
+- 2026-09-27 — AI itinerary import: undo. After importing, the dialog shows a result screen with **Undo this import**; reopening the dialog later offers **Undo last AI import**. Only the places, day stops and to-dos that import created are removed (`POST /api/trips/:tripId/itinerary-import/undo`).
 - 2026-09-27 — `docs/lessons-learned.md`: root causes and prevention for the six AI-import incidents of 2026-09-26.
 - 2026-09-26 — Test scenarios and sample inputs for the AI itinerary import: `docs/guides/test-scenarios-ai-itinerary-import.md`, `docs/guides/samples/`.
 
 ### Changed
+- 2026-09-27 — The AI import dialog is hosted once at the app root (`ItineraryImportHost` + `itineraryImportUiStore`); all four entry points open it through the store.
 - 2026-09-26 — New `npm run start:local` (build once, run the API without `--watch`); `start-trek.bat` now uses it. On Windows, `node --watch` restarted the API whenever a dependency was first loaded, which killed every AI import request mid-way.
 - 2026-09-26 — Itinerary import: the file picker lists Word/Excel MIME types, so phone file pickers no longer grey those files out.
 - 2026-09-26 — Itinerary import geocoding: city centres come from the AI (a bare-name lookup put 旭川 in Akita), a rate-limited index search is retried, and lookups stop after 90 s so a phone request is not dropped.

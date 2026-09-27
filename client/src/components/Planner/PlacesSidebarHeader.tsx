@@ -4,6 +4,7 @@ import Tooltip from '../shared/Tooltip'
 import CustomSelect from '../shared/CustomSelect'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { SidebarState } from './usePlacesSidebar'
+import { useItineraryImportUi } from '../../store/itineraryImportUiStore'
 
 /**
  * Below this the two labels stop fitting side by side and both buttons fall back
@@ -32,13 +33,14 @@ export function PlacesDropOverlay({ t }: SidebarState) {
 
 export function PlacesHeader(S: SidebarState) {
   const {
-    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, setItineraryImportOpen, hasMultipleListImportProviders,
+    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders, tripId,
     places, categories, categoryFilters, search, setSearch, plannedIds, plannedFilterIds, dayScoped, onClearSelectedDay, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
     ratingFilter, setRatingFilter,
     starDropOpen, setStarDropOpen,
   } = S
+  const openAiImport = useItineraryImportUi((s) => s.open)
   const dayOpen = selectedDayId != null
   const { ref: buttonRowRef, width: buttonRowWidth } = useElementSize<HTMLDivElement>()
   // Zero is the first paint, before the observer has measured anything — treat
@@ -149,7 +151,7 @@ export function PlacesHeader(S: SidebarState) {
       {/* The AI import gets a full-width row: its label is the longest of the
           three and it is the one worth noticing. */}
       <button type="button"
-        onClick={() => setItineraryImportOpen(true)}
+        onClick={() => openAiImport(Number(tripId))}
         className="bg-accent text-accent-text"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,

@@ -47,3 +47,10 @@
 - **Fix:** `isKeyProblem()` stops the ladder, and `providerError()` gives a plain message (commit `8e5460e3a`).
 - **Prevention:** Unit tests in `itinerary-llm.test.ts`. Test scenario TC-11.
 - **Scope:** project
+
+### L-2026-09-27-01 · Import dialog vanished right after "Import"
+- **Symptom:** After adding a result/undo step, the dialog disappeared on "Import" instead of showing it.
+- **Root cause:** The dialog was rendered inside planner components. `loadTrip()` resets the trip and sets `isLoading`, so the planner unmounted during the reload and the dialog's state was lost with it.
+- **Fix:** One `ItineraryImportHost` at the app root, opened through `itineraryImportUiStore` (same pattern as the save-to-collection modal).
+- **Prevention:** A browser run of the full flow (import → result → undo) on desktop and phone before handover. Rule: any dialog that survives a `loadTrip()` lives at the app root, not in the planner.
+- **Scope:** project

@@ -176,5 +176,16 @@ const places: TranslationStrings = {
   'itineraryImport.todoCategory': '文件导入',
   'itineraryImport.todosAdded': '已加入 {count} 项待办',
   'itineraryImport.shortButton': 'AI 导入',
+  'itineraryImport.doneTitle': '导入完成',
+  'itineraryImport.done': '完成',
+  'itineraryImport.doneHint': '回到行程看看。如果不对，可以撤销这次导入再来一次；只会删除这次加入的内容。',
+  'itineraryImport.undo': '撤销这次导入',
+  'itineraryImport.undoLast': '撤销上次 AI 导入',
+  'itineraryImport.lastImport': '上次 AI 导入：{places} 个地点，{when}',
+  'itineraryImport.undoConfirm': '将删除这次导入加入的 {places} 个地点、{stops} 个日程和 {todos} 项待办（包括之后对它们做过的修改）。确定？',
+  'itineraryImport.undoConfirmButton': '确定删除',
+  'itineraryImport.undoKeep': '保留',
+  'itineraryImport.undoing': '撤销中…',
+  'itineraryImport.undoDone': '已撤销导入：删除了 {places} 个地点和 {todos} 项待办，可以重新分析。',
 };
 export default places;

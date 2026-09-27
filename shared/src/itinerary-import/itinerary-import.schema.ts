@@ -1,3 +1,13 @@
+/**
+ * @file        itinerary-import.schema.ts
+ * @description Zod contract for the AI itinerary import: preview, confirm and undo.
+ * @module      shared/itinerary-import
+ * @layer       shared
+ * @dependencies zod
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-27 — Confirm returns the created ids; new undo request/response. (see CHANGELOG.md)
+ */
 import { z } from 'zod';
 
 /**
@@ -91,10 +101,34 @@ export const itineraryImportConfirmRequestSchema = z.object({
 });
 export type ItineraryImportConfirmRequest = z.input<typeof itineraryImportConfirmRequestSchema>;
 
+const idListSchema = z.array(z.number().int().positive()).max(500);
+
 export const itineraryImportConfirmResponseSchema = z.object({
   created: z.number(),
   skipped: z.number(),
   assigned: z.number(),
   todos_added: z.number(),
+  /** Exactly what this import added, so it can be undone without touching anything else. */
+  place_ids: idListSchema,
+  assignment_ids: idListSchema,
+  todo_ids: idListSchema,
 });
 export type ItineraryImportConfirmResponse = z.infer<typeof itineraryImportConfirmResponseSchema>;
+
+/**
+ * Undo one import: remove the rows it created and nothing else. Places that
+ * already existed (the "skipped" ones) are never in these lists.
+ */
+export const itineraryImportUndoRequestSchema = z.object({
+  place_ids: idListSchema.default([]),
+  assignment_ids: idListSchema.default([]),
+  todo_ids: idListSchema.default([]),
+});
+export type ItineraryImportUndoRequest = z.input<typeof itineraryImportUndoRequestSchema>;
+
+export const itineraryImportUndoResponseSchema = z.object({
+  places_removed: z.number(),
+  assignments_removed: z.number(),
+  todos_removed: z.number(),
+});
+export type ItineraryImportUndoResponse = z.infer<typeof itineraryImportUndoResponseSchema>;

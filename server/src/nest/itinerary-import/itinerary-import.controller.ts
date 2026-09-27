@@ -1,8 +1,23 @@
+/**
+ * @file        itinerary-import.controller.ts
+ * @description HTTP routes for the AI itinerary import: preview (multipart), confirm and undo.
+ * @module      server/nest/itinerary-import
+ * @layer       backend
+ * @dependencies ItineraryImportService; auth, trip-access and addon guards
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-27 — Added POST undo. (see CHANGELOG.md)
+ */
 import { Body, Controller, Headers, HttpCode, HttpException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { extname } from 'node:path';
-import { ITINERARY_IMPORT_EXTENSIONS, type ItineraryImportConfirmResponse, type ItineraryImportPreviewResponse } from '@trek/shared';
+import {
+  ITINERARY_IMPORT_EXTENSIONS,
+  type ItineraryImportConfirmResponse,
+  type ItineraryImportPreviewResponse,
+  type ItineraryImportUndoResponse,
+} from '@trek/shared';
 import type { User } from '../../types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -11,7 +26,7 @@ import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
 import { ItineraryImportService } from './itinerary-import.service';
-import { ItineraryImportConfirmDto, ItineraryImportPreviewDto } from './itinerary-import.dto';
+import { ItineraryImportConfirmDto, ItineraryImportPreviewDto, ItineraryImportUndoDto } from './itinerary-import.dto';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = new Set<string>(ITINERARY_IMPORT_EXTENSIONS);
@@ -58,5 +73,18 @@ export class ItineraryImportController {
     @Headers('x-socket-id') socketId?: string,
   ): ItineraryImportConfirmResponse {
     return this.service.confirm(tripId, user, body as never, socketId);
+  }
+
+  /** Remove exactly what one confirm created (ids from its response). */
+  @Post('undo')
+  @HttpCode(200)
+  @RequirePermission('place_edit')
+  undo(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: ItineraryImportUndoDto,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<ItineraryImportUndoResponse> {
+    return this.service.undo(tripId, user, body as never, socketId);
   }
 }

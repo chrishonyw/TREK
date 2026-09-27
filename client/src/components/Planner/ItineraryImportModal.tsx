@@ -1,9 +1,21 @@
+/**
+ * @file        ItineraryImportModal.tsx
+ * @description AI itinerary import dialog (shared by desktop and phone): upload / paste,
+ *              AI preview with edits, import, result screen and undo of the last import.
+ * @module      client/components/Planner
+ * @layer       frontend
+ * @dependencies useItineraryImport; ToggleSwitch; lucide-react icons
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-27 — Result step with undo; app-root ItineraryImportHost. (see CHANGELOG.md)
+ */
 import type React from 'react'
 import { createPortal } from 'react-dom'
-import { FileText, Loader2, Sparkles, Upload, X } from 'lucide-react'
+import { CheckCircle2, FileText, Loader2, Sparkles, Undo2, Upload, X } from 'lucide-react'
 import type { ItineraryImportCategory } from '@trek/shared'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { useItineraryImport, type ItineraryImportState, type PreviewDay } from './useItineraryImport'
+import { useItineraryImportUi } from '../../store/itineraryImportUiStore'
 
 /**
  * Extensions AND MIME types: iOS Files and several Android pickers match on
@@ -30,9 +42,20 @@ function dayLabel(d: PreviewDay): string {
   return `Day ${d.day_number}${date}`
 }
 
+/**
+ * App-root host for the dialog: renders it for the trip the store says is open.
+ * Mounted once in App.tsx so a trip reload cannot unmount it mid-flow.
+ */
+export function ItineraryImportHost() {
+  const tripId = useItineraryImportUi((s) => s.tripId)
+  const close = useItineraryImportUi((s) => s.close)
+  if (tripId == null) return null
+  return <ItineraryImportModal key={tripId} tripId={tripId} onClose={close} />
+}
+
 export default function ItineraryImportModal({ tripId, onClose }: { tripId: number; onClose: () => void }) {
   const S = useItineraryImport(tripId, onClose)
-  const busy = S.step === 'analyzing' || S.step === 'importing'
+  const busy = S.step === 'analyzing' || S.step === 'importing' || S.undoing
   return createPortal(
     <div
       role="presentation"
@@ -63,6 +86,7 @@ export default function ItineraryImportModal({ tripId, onClose }: { tripId: numb
         {S.step === 'input' && <InputStep S={S} onClose={onClose} />}
         {S.step === 'analyzing' && <AnalyzingStep S={S} />}
         {(S.step === 'preview' || S.step === 'importing') && <PreviewStep S={S} />}
+        {S.step === 'done' && <DoneStep S={S} />}
       </div>
     </div>,
     document.body,
@@ -92,6 +116,7 @@ function InputStep({ S, onClose }: { S: ItineraryImportState; onClose: () => voi
     <>
       <div style={{ padding: '0 24px 16px', overflowY: 'auto' }}>
         <div className="text-content-faint" style={{ ...caption, marginBottom: 14, lineHeight: 1.5 }}>{S.t('itineraryImport.hint')}</div>
+        {S.lastImport && <LastImportBanner S={S} />}
         {!S.aiEnabled && (
           <div className="bg-surface-tertiary text-content-muted" style={{ ...caption, borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
             {S.t('itineraryImport.notConfigured')}
@@ -261,5 +286,83 @@ function LinkButton({ onClick, children }: { onClick: () => void; children: Reac
       style={{ ...caption, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'inherit' }}>
       {children}
     </button>
+  )
+}
+
+/**
+ * Undo control shared by the result step and the input-step banner: the first
+ * tap asks, the second deletes. Deleting is irreversible, hence the two taps.
+ * @param {Object} props
+ * @param {ItineraryImportState} props.S - Dialog state.
+ * @param {string} props.label - Text of the first-tap button.
+ */
+function UndoControl({ S, label }: { S: ItineraryImportState; label: string }) {
+  const rec = S.lastImport
+  if (!rec) return null
+  if (!S.undoArmed) {
+    return (
+      <button type="button" onClick={() => S.setUndoArmed(true)} disabled={S.undoing}
+        className="text-danger border border-edge"
+        style={{ ...body, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+        <Undo2 size={14} /> {label}
+      </button>
+    )
+  }
+  return (
+    <div className="bg-danger-soft" style={{ borderRadius: 10, padding: '10px 12px' }}>
+      <div className="text-content" style={{ ...caption, lineHeight: 1.5, marginBottom: 8 }}>
+        {S.t('itineraryImport.undoConfirm', { places: rec.place_ids.length, stops: rec.assignment_ids.length, todos: rec.todo_ids.length })}
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Button onClick={() => S.setUndoArmed(false)} disabled={S.undoing}>{S.t('itineraryImport.undoKeep')}</Button>
+        <button type="button" onClick={S.undoLastImport} disabled={S.undoing}
+          className="bg-danger text-accent-text"
+          style={{ ...body, padding: '8px 14px', borderRadius: 10, border: 'none', cursor: S.undoing ? 'default' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+          {S.undoing ? S.t('itineraryImport.undoing') : S.t('itineraryImport.undoConfirmButton')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Result screen after an import: what was added, and the way back. */
+function DoneStep({ S }: { S: ItineraryImportState }) {
+  const rec = S.lastImport
+  return (
+    <>
+      <div style={{ padding: '4px 24px 16px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <CheckCircle2 size={20} className="text-success" />
+          <div className="text-content" style={{ ...body, fontWeight: 700 }}>{S.t('itineraryImport.doneTitle')}</div>
+        </div>
+        {rec && (
+          <div className="text-content-muted" style={{ ...caption, lineHeight: 1.6, marginBottom: 12 }}>
+            {S.t('itineraryImport.success', { created: rec.created, assigned: rec.assigned })}
+            {rec.todos_added ? ` · ${S.t('itineraryImport.todosAdded', { count: rec.todos_added })}` : ''}
+            {rec.skipped ? ` · ${S.t('itineraryImport.skipped', { skipped: rec.skipped })}` : ''}
+          </div>
+        )}
+        <div className="text-content-faint" style={{ ...caption, lineHeight: 1.5, marginBottom: 12 }}>{S.t('itineraryImport.doneHint')}</div>
+        <UndoControl S={S} label={S.t('itineraryImport.undo')} />
+      </div>
+      <Footer>
+        <Button primary onClick={S.onClose} disabled={S.undoing}>{S.t('itineraryImport.done')}</Button>
+      </Footer>
+    </>
+  )
+}
+
+/** On the input step: the previous import of this trip can still be undone. */
+function LastImportBanner({ S }: { S: ItineraryImportState }) {
+  const rec = S.lastImport!
+  let when = rec.at
+  try { when = new Date(rec.at).toLocaleString() } catch { /* keep the ISO string */ }
+  return (
+    <div className="bg-surface-tertiary" style={{ borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+      <div className="text-content-muted" style={{ ...caption, marginBottom: 8 }}>
+        {S.t('itineraryImport.lastImport', { places: rec.place_ids.length, when })}
+      </div>
+      <UndoControl S={S} label={S.t('itineraryImport.undoLast')} />
+    </div>
   )
 }

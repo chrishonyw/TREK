@@ -2,7 +2,7 @@
 
 - **Feature:** turn a planning document (Word / Excel / PDF / text) into places, to-dos and a "Plan A" day plan.
 - **Branch:** `feature/itinerary-import`
-- **Last updated:** 2026-09-26
+- **Last updated:** 2026-09-27
 - **Sample inputs:** `docs/guides/samples/sample-hokkaido-notes.txt`, `docs/guides/samples/sample-hokkaido-plan.xlsx`, and your own `北海道冰雪祭典行程_2027-02-03至17.docx` / `東京青森12天.docx`.
 
 ---
@@ -93,6 +93,26 @@ Each scenario: run it on **desktop** and on **phone** (the dialog is shared, so 
 - Plan A follows the document: Day 1 支笏湖冰濤祭 → Day 2 札幌雪祭 → … → Day 10 紋別流冰節 → Day 13 二條市場.
 - 6 booking to-dos (JR 特急, 破冰船, 流冰巴士, …).
 - Festival events (旭川冬祭, 層雲峽冰瀑祭, 紋別流冰節) may show **Not on map**. This is normal: the map index lists venues, not events.
+
+### TC-06c — Undo right after importing
+1. Run TC-02 or TC-06b and tap **Import N places**.
+2. The dialog stays open on **Import finished** with a summary. Check the trip behind it.
+3. Tap **Undo this import**; a red box asks to confirm. Tap **Keep** first.
+4. Tap **Undo this import** again, then **Delete them**.
+
+**Expected:**
+- After step 3, nothing changes.
+- After step 4, the places, day stops and to-dos from this import are gone, and places that were already on the trip before the import stay.
+- The dialog returns to the upload step with your file / text still there, ready to analyse again.
+
+### TC-06d — Undo later, after closing the dialog
+1. Import (TC-02), tap **Done**, and look around the trip.
+2. Open the AI import again (✨).
+
+**Expected:**
+- A grey box shows "Last AI import: N places, <time>" with **Undo last AI import**.
+- Undoing works as in TC-06c. Afterwards the box is gone.
+- The box shows in the browser that did the import (it is remembered per browser).
 
 ### TC-07 — Re-import the same document (no duplicates)
 1. Run TC-03, then import the same text again into the same trip.

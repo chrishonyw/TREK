@@ -8,7 +8,6 @@ import { PlacesSelectionBar } from './PlacesSidebarSelectionBar'
 import { PlacesList } from './PlacesSidebarList'
 import { MobileDayPickerSheet } from './PlacesSidebarMobileDayPicker'
 import { ListImportModal } from './PlacesSidebarListImportModal'
-import ItineraryImportModal from './ItineraryImportModal'
 import { PlacesBulkCategoryModal } from './PlacesBulkCategoryModal'
 import SaveTripPlacesToListModal from '../Collections/SaveTripPlacesToListModal'
 import DawarichSuggestionsPanel from '../Dawarich/DawarichSuggestionsPanel'
@@ -90,7 +89,6 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
 
       {dayPickerPlace && <MobileDayPickerSheet {...S} />}
       {listImportOpen && <ListImportModal {...S} />}
-      {S.itineraryImportOpen && <ItineraryImportModal tripId={Number(tripId)} onClose={() => S.setItineraryImportOpen(false)} />}
       <FileImportModal
         isOpen={fileImportOpen}
         onClose={() => { setFileImportOpen(false); setSidebarDropFile(null) }}

@@ -4,7 +4,7 @@ import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { TripExportModal } from './TripExportModal'
-import ItineraryImportModal from './ItineraryImportModal'
+import { useItineraryImportUi } from '../../store/itineraryImportUiStore'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import type { DayAddControls } from '../../utils/dayAdd'
 import type { DayDeleteQuestion } from '../../utils/dayImpactLines'
@@ -57,7 +57,7 @@ export function DayPlanSidebarToolbar({
 }: DayPlanSidebarToolbarProps) {
   const [reorderOpen, setReorderOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
-  const [aiImportOpen, setAiImportOpen] = useState(false)
+  const openAiImport = useItineraryImportUi((s) => s.open)
 
   return (
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
@@ -68,7 +68,7 @@ export function DayPlanSidebarToolbar({
           <Tooltip label={t('itineraryImport.title')} placement="bottom">
             <button
               type="button"
-              onClick={() => setAiImportOpen(true)}
+              onClick={() => openAiImport(tripId)}
               aria-haspopup="dialog"
               className="bg-accent text-accent-text"
               style={{
@@ -83,7 +83,6 @@ export function DayPlanSidebarToolbar({
             </button>
           </Tooltip>
         )}
-        {aiImportOpen && <ItineraryImportModal tripId={tripId} onClose={() => setAiImportOpen(false)} />}
         {/* One export button instead of three: PDF, ICS and GPX each carried
             their own hover menu, and on a narrower sidebar the row ran out of
             width and pushed them off the edge. The dialog holds every option. */}

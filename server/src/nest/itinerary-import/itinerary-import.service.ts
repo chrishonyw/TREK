@@ -8,7 +8,7 @@
  *              PermissionsService, TodoService, trek-places client
  * @author      Claude (AI) for project owner
  * @created     2026-09-26
- * @lastModified 2026-09-26 — Model-given city centres, index retry, 90 s geocoding budget. (see CHANGELOG.md)
+ * @lastModified 2026-09-27 — Confirm returns created ids; new undo() removes exactly one import. (see CHANGELOG.md)
  */
 import { HttpException, Injectable } from '@nestjs/common';
 import {
@@ -18,6 +18,7 @@ import {
   type ItineraryImportPlace,
   type ItineraryImportPlanDay,
   type ItineraryImportPreviewResponse,
+  type ItineraryImportUndoResponse,
 } from '@trek/shared';
 import type { User } from '../../types';
 import { DatabaseService } from '../database/database.service';
@@ -238,7 +239,81 @@ export class ItineraryImportService {
 
     const created = createdPlaces.length;
     const assigned = createdAssignments.length;
-    return { created, skipped, assigned, todos_added: createdTodos.length };
+    const idOf = (row: unknown) => Number((row as { id: number }).id);
+    return {
+      created,
+      skipped,
+      assigned,
+      todos_added: createdTodos.length,
+      place_ids: createdPlaces.map(idOf),
+      assignment_ids: createdAssignments.map(idOf),
+      todo_ids: createdTodos.filter(Boolean).map(idOf),
+    };
+  }
+
+  /**
+   * Undo one import: remove exactly the rows it created.
+   *
+   * Places go through the same path as the places bulk delete (journey hooks,
+   * linked expenses, cancelled stays, broadcasts), so an undo leaves the trip as
+   * a manual delete would. Their day stops go with them by FK cascade; stops the
+   * import put on places that already existed are removed one by one. Ids from
+   * another trip are ignored.
+   * @param {string} tripId - Trip the import was made into.
+   * @param {User} user - Caller; needs day_edit / packing_edit for stops / to-dos.
+   * @param {{place_ids:number[], assignment_ids:number[], todo_ids:number[]}} body - Ids from the confirm response.
+   * @param {string} [socketId] - Originating socket, not echoed.
+   * @returns {Promise<ItineraryImportUndoResponse>} How many rows of each kind were removed.
+   */
+  async undo(
+    tripId: string,
+    user: User,
+    body: { place_ids: number[]; assignment_ids: number[]; todo_ids: number[] },
+    socketId?: string,
+  ): Promise<ItineraryImportUndoResponse> {
+    const trip = this.dbs.canAccessTrip(tripId, user.id);
+    if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
+    const can = (action: string) => this.permissions.checkPermission(action, user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    if (body.assignment_ids.length && !can('day_edit')) throw new HttpException({ error: 'No permission' }, 403);
+    if (body.todo_ids.length && !can('packing_edit')) throw new HttpException({ error: 'No permission' }, 403);
+
+    // Read the stops (with their day) before anything is deleted: the cascade
+    // would take the ones on imported places with it, and clients still need
+    // their assignment:deleted to drop them from the day.
+    const stops = body.assignment_ids.length
+      ? this.dbs.all<{ id: number; day_id: number }>(
+          `SELECT da.id, da.day_id FROM day_assignments da JOIN days d ON d.id = da.day_id
+           WHERE d.trip_id = ? AND da.id IN (${body.assignment_ids.map(() => '?').join(',')})`,
+          tripId,
+          ...body.assignment_ids,
+        )
+      : [];
+
+    const scoped = this.places.scopedIds(tripId, body.place_ids);
+    for (const id of scoped) this.places.onDeleted(id);
+    const expenseIds = this.places.linkedExpenseIds(tripId, scoped);
+    const { deleted, cancelled } = await this.places.removeMany(tripId, scoped);
+
+    let todosRemoved = 0;
+    this.dbs.transaction(() => {
+      for (const stop of stops) this.assignments.deleteAssignment(stop.id);
+      for (const id of body.todo_ids) if (this.todo.deleteItem(tripId, id)) todosRemoved++;
+    });
+
+    for (const stop of stops) {
+      this.assignments.broadcast(tripId, 'assignment:deleted', { assignmentId: stop.id, dayId: stop.day_id }, socketId);
+    }
+    for (const id of deleted) this.places.broadcast(tripId, 'place:deleted', { placeId: id }, socketId);
+    for (const reservationId of cancelled.reservationIds) {
+      this.places.broadcast(tripId, 'reservation:deleted', { reservationId }, undefined);
+    }
+    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds]) {
+      this.places.broadcast(tripId, 'budget:deleted', { itemId }, undefined);
+    }
+    for (const id of body.todo_ids) this.todo.broadcast(tripId, 'todo:deleted', { itemId: id }, socketId);
+    if (stops.length) this.assignments.reconcile(tripId, socketId);
+
+    return { places_removed: deleted.length, assignments_removed: stops.length, todos_removed: todosRemoved };
   }
 
   private tripDays(tripId: string): DayRow[] {

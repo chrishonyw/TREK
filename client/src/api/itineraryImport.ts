@@ -1,8 +1,20 @@
+/**
+ * @file        itineraryImport.ts
+ * @description API calls for the AI itinerary import: preview, confirm and undo.
+ * @module      client/api
+ * @layer       frontend
+ * @dependencies api/client (apiClient, postMultipart); @trek/shared types
+ * @author      Claude (AI) for project owner
+ * @created     2026-09-26
+ * @lastModified 2026-09-27 — Added undo(). (see CHANGELOG.md)
+ */
 import apiClient, { postMultipart } from './client'
 import type {
   ItineraryImportConfirmRequest,
   ItineraryImportConfirmResponse,
   ItineraryImportPreviewResponse,
+  ItineraryImportUndoRequest,
+  ItineraryImportUndoResponse,
 } from '@trek/shared'
 
 /**
@@ -24,4 +36,7 @@ export const itineraryImportApi = {
   },
   confirm: (tripId: number | string, body: ItineraryImportConfirmRequest): Promise<ItineraryImportConfirmResponse> =>
     apiClient.post(`/trips/${tripId}/itinerary-import/confirm`, body, { timeout: 120000 }).then(r => r.data),
+  /** Remove exactly what one confirm created, by the ids it returned. */
+  undo: (tripId: number | string, body: ItineraryImportUndoRequest): Promise<ItineraryImportUndoResponse> =>
+    apiClient.post(`/trips/${tripId}/itinerary-import/undo`, body, { timeout: 120000 }).then(r => r.data),
 }

@@ -180,5 +180,16 @@ const places: TranslationStrings = {
   'itineraryImport.todoCategory': 'From document',
   'itineraryImport.todosAdded': '{count} to-dos added',
   'itineraryImport.shortButton': 'AI import',
+  'itineraryImport.doneTitle': 'Import finished',
+  'itineraryImport.done': 'Done',
+  'itineraryImport.doneHint': 'Check the trip. If it is not right, undo this import and try again — only what this import added is removed.',
+  'itineraryImport.undo': 'Undo this import',
+  'itineraryImport.undoLast': 'Undo last AI import',
+  'itineraryImport.lastImport': 'Last AI import: {places} places, {when}',
+  'itineraryImport.undoConfirm': 'This deletes the {places} places, {stops} day stops and {todos} to-dos this import added (including any changes you made to them since). Continue?',
+  'itineraryImport.undoConfirmButton': 'Delete them',
+  'itineraryImport.undoKeep': 'Keep',
+  'itineraryImport.undoing': 'Undoing…',
+  'itineraryImport.undoDone': 'Import undone: {places} places and {todos} to-dos removed. You can analyse again.',
 };
 export default places;
